@@ -49,6 +49,14 @@
     <string name="pref_fetch_mode_ranking_daily">Daily</string>
     <string name="pref_fetch_mode_ranking_weekly">Weekly</string>
     <string name="pref_fetch_mode_ranking_monthly">Monthly</string>
+    <string name="pref_fetch_mode_ranking_rookie">Rookie</string>
+    <string name="pref_fetch_mode_ranking_original">Original</string>
+    <string name="pref_fetch_mode_ranking_male">Male</string>
+    <string name="pref_fetch_mode_ranking_female">Female</string>
+    <string name="pref_fetch_mode_ranking_daily_r18">Daily_r18</string>
+    <string name="pref_fetch_mode_ranking_weekly_r18">Weekly_r18</string>
+    <string name="pref_fetch_mode_ranking_male_r18">Male_r18</string>
+    <string name="pref_fetch_mode_ranking_female_r18">Female_r18</string>
 
     <string name="pref_fetch_bookmark">Private bookmark</string>
     <string name="pref_fetch_bookmark_summary_on">Include private bookmark</string>
@@ -74,6 +82,9 @@
 
     <string name="pref_fetch_fallback_summary">when fetch failed, try fallback source (walkthrough source)</string>
     <string name="pref_fetch_fallback">Fallback source</string>
+
+    <string name="pref_fetch_all_page_summary">If illust have multiple pages, fetch all pages</string>
+    <string name="pref_fetch_all_page">Fetch All Pages</string>
 
     <!-- Login -->
     <string name="title_activity_pixiv_login">Login Pixiv</string>

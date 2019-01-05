@@ -4,6 +4,8 @@
     package="one.oktw.muzeipixivsource">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -27,14 +29,6 @@
         <activity
             android:name=".activity.PixivSignIn"
             android:label="@string/title_activity_pixiv_login" />
-
-        <service
-            android:name=".service.CloudMessage"
-            tools:ignore="ExportedService">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
 
         <provider
             android:name="one.oktw.muzeipixivsource.provider.MuzeiProvider"

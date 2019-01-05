@@ -1,11 +1,14 @@
 package one.oktw.muzeipixivsource.activity
 
+import android.app.Activity
 import android.content.Intent
 import android.content.Intent.ACTION_VIEW
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import one.oktw.muzeipixivsource.R
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment
 import one.oktw.muzeipixivsource.util.AppUtil.Companion.checkInstalled
@@ -18,6 +21,8 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        verifyStoragePermissions()
 
         // if click update version notification
         intent.getStringExtra("new_version")?.let {
@@ -44,4 +49,24 @@ class SettingsActivity : AppCompatActivity() {
                 .commit()
         }
     }
+
+    private val REQUEST_EXTERNAL_STORAGE = 1
+    private val PERMISSIONS_STORAGE = arrayOf("android.permission.READ_EXTERNAL_STORAGE", "android.permission.WRITE_EXTERNAL_STORAGE")
+
+    fun verifyStoragePermissions() {
+
+        try {
+            //检测是否有写的权限
+            val permission = ActivityCompat.checkSelfPermission(this,
+                "android.permission.WRITE_EXTERNAL_STORAGE")
+            if (permission != PackageManager.PERMISSION_GRANTED) {
+                // 没有写的权限，去申请写的权限，会弹出对话框
+                ActivityCompat.requestPermissions(this, PERMISSIONS_STORAGE, REQUEST_EXTERNAL_STORAGE)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+    }
+
 }

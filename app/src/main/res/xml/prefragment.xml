@@ -42,6 +42,11 @@
             android:key="fetch_fallback"
             android:summary="@string/pref_fetch_fallback_summary"
             android:title="@string/pref_fetch_fallback" />
+        <SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:key="fetch_all_page"
+            android:summary="@string/pref_fetch_all_page_summary"
+            android:title="@string/pref_fetch_all_page" />
         <ListPreference
             android:defaultValue="0"
             android:dialogTitle="@string/pref_fetch_mode_dialog"

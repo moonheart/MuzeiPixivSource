@@ -22,10 +22,12 @@ class Fallback {
                 .build()
                 .let(httpClient::newCall)
                 .execute()
-                .body()!!
-                .let {
-                    GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES).create()
-                        .fromJson<IllustList>(it.charStream(), IllustList::class.java)
+                .use {
+                    it.body()!!
+                        .let {
+                            GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES).create()
+                                .fromJson<IllustList>(it.charStream(), IllustList::class.java)
+                        }
                 }
         }
     }

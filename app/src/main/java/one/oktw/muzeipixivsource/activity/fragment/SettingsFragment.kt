@@ -38,6 +38,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         const val KEY_FETCH_ORIGIN = "fetch_origin"
         const val KEY_FETCH_NUMBER = "fetch_number"
         const val KEY_FETCH_CLEANUP = "fetch_cleanup"
+        const val KEY_FETCH_ALL_PAGE = "fetch_all_page"
         const val KEY_FETCH_MODE = "fetch_mode"
         const val KEY_FETCH_FALLBACK = "fetch_fallback"
         const val KEY_FETCH_MODE_RANKING = "fetch_mode_ranking"
@@ -167,11 +168,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
             FETCH_MODE_BOOKMARK -> fetchCategory.addPreference(bookmarkPreference)
         }
 
-        if (newValue != null) {
-            val context = requireContext()
-            ProviderContract.Artwork.getContentUri(context, MuzeiProvider::class.java)
-                .let { context.contentResolver.delete(it, null, null) }
-        }
+//        if (newValue != null) {
+//            val context = requireContext()
+//            ProviderContract.Artwork.getContentUri(context, MuzeiProvider::class.java)
+//                .let { context.contentResolver.delete(it, null, null) }
+//        }
     }
 
     private fun logout() {

@@ -60,4 +60,14 @@
     <string name="button_update">抓取新圖片</string>
     <string name="pref_fetch_random_summary">隨機排序抓取結果</string>
     <string name="pref_fetch_random">隨機排序</string>
+    <string name="pref_fetch_mode_ranking_rookie">新人</string>
+    <string name="pref_fetch_mode_ranking_original">原創</string>
+    <string name="pref_fetch_mode_ranking_male">受男性歡迎</string>
+    <string name="pref_fetch_mode_ranking_female">受女性歡迎</string>
+    <string name="pref_fetch_mode_ranking_daily_r18">每日（R18）</string>
+    <string name="pref_fetch_mode_ranking_weekly_r18">每周（R18）</string>
+    <string name="pref_fetch_mode_ranking_male_r18">受男性歡迎（R18）</string>
+    <string name="pref_fetch_mode_ranking_female_r18">受女性歡迎（R18）</string>
+    <string name="pref_fetch_all_page_summary">如果作品包含多頁，獲取所有頁的圖片</string>
+    <string name="pref_fetch_all_page">獲取所有頁</string>
 </resources>

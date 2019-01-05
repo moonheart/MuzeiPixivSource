@@ -1,14 +1,13 @@
 package one.oktw.muzeipixivsource.provider
 
 import android.content.SharedPreferences
+import android.os.Environment
 import android.util.Log
 import androidx.core.net.toUri
 import androidx.preference.PreferenceManager
-import com.crashlytics.android.Crashlytics
 import com.google.android.apps.muzei.api.UserCommand
 import com.google.android.apps.muzei.api.provider.Artwork
 import com.google.android.apps.muzei.api.provider.MuzeiArtProvider
-import com.google.firebase.analytics.FirebaseAnalytics
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -18,6 +17,7 @@ import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.FE
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.FETCH_MODE_FALLBACK
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.FETCH_MODE_RANKING
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.FETCH_MODE_RECOMMEND
+import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KEY_FETCH_ALL_PAGE
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KEY_FETCH_CLEANUP
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KEY_FETCH_FALLBACK
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KEY_FETCH_MODE
@@ -36,27 +36,29 @@ import one.oktw.muzeipixivsource.pixiv.mode.RankingCategory.Monthly
 import one.oktw.muzeipixivsource.pixiv.mode.RankingCategory.valueOf
 import one.oktw.muzeipixivsource.pixiv.model.Illust
 import org.jsoup.Jsoup
+import java.io.File
+import java.io.FileOutputStream
 import java.io.InputStream
 
 class MuzeiProvider : MuzeiArtProvider() {
     companion object {
         private const val COMMAND_FETCH = 1
+        private const val TAG = "MuzeiProvider"
     }
 
     private val httpClient = OkHttpClient()
     private lateinit var preference: SharedPreferences
-    private lateinit var analytics: FirebaseAnalytics
 
     override fun onCreate(): Boolean {
         PreferenceManager.setDefaultValues(context, R.xml.prefragment, true)
 
         preference = PreferenceManager.getDefaultSharedPreferences(context)
-        analytics = FirebaseAnalytics.getInstance(context!!)
 
         return super.onCreate()
     }
 
     override fun onLoadRequested(initial: Boolean) {
+        Log.d(TAG, "加载请求")
         runBlocking { updateToken() }
 
         val token: String? = preference.getString(KEY_PIXIV_ACCESS_TOKEN, null)
@@ -79,28 +81,55 @@ class MuzeiProvider : MuzeiArtProvider() {
         } catch (e1: Exception) {
             // TODO better except handle
             Log.e("fetch", "fetch update error", e1)
-            Crashlytics.logException(e1)
 
             try {
                 if (fallback) pixiv.getFallback().let(::publish) else throw e1
             } catch (e2: Exception) {
                 Log.e("fetch", "fetch update fallback error", e2)
 
-                if (e1 != e2) Crashlytics.logException(e2)
                 throw e2
             }
         }
     }
 
     override fun openFile(artwork: Artwork): InputStream {
-        return Request.Builder()
-            .url(artwork.persistentUri.toString())
-            .header("Referer", "https://app-api.pixiv.net/")
-            .build()
-            .let(httpClient::newCall)
-            .execute()
-            .body()!!.byteStream()
+        val filename = artwork.persistentUri.toString().split("/").last()
+        Log.d(TAG, "打开文件：$filename")
+        val file = File(getPixivCacheDir(), filename)
+        if (!file.exists()) {
+            Request.Builder()
+                .url(artwork.persistentUri.toString())
+                .header("Referer", "https://app-api.pixiv.net/")
+                .build()
+                .let(httpClient::newCall)
+                .execute()
+                .use {
+                    it.body()!!.byteStream().use { bs ->
+                        FileOutputStream(file).use {
+                            bs.copyTo(it)
+                        }
+                    }
+                }
+
+        }
+        return file.inputStream()
     }
+
+    private fun getPixivCacheDir(): File {
+        val savePath = "/pixiv/"
+        // 创建外置缓存文件夹
+        val pPath = File(Environment.getExternalStorageDirectory().toString() + savePath)
+        if (pPath.exists()) {
+            if (pPath.isFile) {
+                pPath.delete()
+                pPath.mkdir()
+            }
+        } else {
+            pPath.mkdir()
+        }
+        return pPath
+    }
+
 
     override fun getCommands(artwork: Artwork) = mutableListOf(
         UserCommand(COMMAND_FETCH, context?.getString(R.string.button_update))
@@ -112,8 +141,6 @@ class MuzeiProvider : MuzeiArtProvider() {
     }
 
     private suspend fun updateToken() {
-        analytics.logEvent("update_token", null)
-
         try {
             PixivOAuth.refresh(
                 preference.getString(SettingsFragment.KEY_PIXIV_DEVICE_TOKEN, null) ?: return,
@@ -121,7 +148,6 @@ class MuzeiProvider : MuzeiArtProvider() {
             ).response?.let { PixivOAuth.save(preference, it) }
         } catch (e: Exception) {
             Log.e("update_token", "update token error", e)
-            Crashlytics.logException(e)
         }
     }
 
@@ -133,6 +159,7 @@ class MuzeiProvider : MuzeiArtProvider() {
         val originImage = if (filterSize > 1200) true else preference.getBoolean(KEY_FETCH_ORIGIN, false)
         val minView = preference.getInt(KEY_FILTER_VIEW, 0)
         val minBookmark = preference.getInt(KEY_FILTER_BOOKMARK, 0)
+        val allPage = preference.getBoolean(KEY_FETCH_ALL_PAGE, false)
 
         val artworkList = ArrayList<Artwork>()
 
@@ -141,7 +168,7 @@ class MuzeiProvider : MuzeiArtProvider() {
             if (filterSize > it.height && filterSize > it.width) return@forEach
             if (minView > it.totalView || minBookmark > it.totalBookmarks) return@forEach
 
-            if (it.pageCount > 1) {
+            if (it.pageCount > 1 && allPage) {
                 it.metaPages.forEachIndexed { index, image ->
                     val imageUrl = if (originImage) {
                         image.imageUrls.original
@@ -160,17 +187,26 @@ class MuzeiProvider : MuzeiArtProvider() {
                         .let(artworkList::add)
                 }
             } else {
-                val imageUrl = if (originImage) {
-                    it.metaSinglePage.original_image_url
+                val imageUrl = if (it.pageCount > 1) {
+                    val image = it.metaPages.first()
+                    if (originImage) {
+                        image.imageUrls.original
+                    } else {
+                        image.imageUrls.large?.replace("/c/600x1200_90", "")
+                    }?.toUri()
                 } else {
-                    it.image_urls.large?.replace("/c/600x1200_90", "")
-                }?.toUri()
+                    if (originImage) {
+                        it.metaSinglePage.original_image_url
+                    } else {
+                        it.image_urls.large?.replace("/c/600x1200_90", "")
+                    }?.toUri()
+                }
 
                 Artwork.Builder()
                     .title(it.title)
                     .byline(it.user.name)
                     .attribution(Jsoup.parse(it.caption).text())
-                    .token(it.id.toString())
+                    .token("${it.id}_p0")
                     .webUri("https://www.pixiv.net/member_illust.php?mode=medium&illust_id=${it.id}".toUri())
                     .persistentUri(imageUrl)
                     .build()
@@ -178,9 +214,11 @@ class MuzeiProvider : MuzeiArtProvider() {
             }
         }
 
-        if (cleanHistory) delete(contentUri, null, null)
+        if (cleanHistory && artworkList.isNotEmpty()) delete(contentUri, null, null)
         if (random) artworkList.shuffle()
-
+        Log.d(TAG, "正在添加数量：${artworkList.size}")
         artworkList.forEach { addArtwork(it) }
+        Log.d(TAG, "添加完成")
     }
+
 }

@@ -15,11 +15,27 @@
         <item>@string/pref_fetch_mode_ranking_daily</item>
         <item>@string/pref_fetch_mode_ranking_weekly</item>
         <item>@string/pref_fetch_mode_ranking_monthly</item>
+        <item>@string/pref_fetch_mode_ranking_rookie</item>
+        <item>@string/pref_fetch_mode_ranking_original</item>
+        <item>@string/pref_fetch_mode_ranking_male</item>
+        <item>@string/pref_fetch_mode_ranking_female</item>
+        <item>@string/pref_fetch_mode_ranking_daily_r18</item>
+        <item>@string/pref_fetch_mode_ranking_weekly_r18</item>
+        <item>@string/pref_fetch_mode_ranking_male_r18</item>
+        <item>@string/pref_fetch_mode_ranking_female_r18</item>
     </string-array>
     <string-array name="pref_fetch_ranking_value" translatable="false">
         <item>Daily</item>
         <item>Weekly</item>
         <item>Monthly</item>
+        <item>Rookie</item>
+        <item>Original</item>
+        <item>Male</item>
+        <item>Female</item>
+        <item>Daily_r18</item>
+        <item>Weekly_r18</item>
+        <item>Male_r18</item>
+        <item>Female_r18</item>
     </string-array>
 
     <string-array name="pref_muzei_interval_entities">
