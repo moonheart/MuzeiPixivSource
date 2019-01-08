@@ -1,8 +1,13 @@
 package one.oktw.muzeipixivsource.provider
 
 import android.content.SharedPreferences
+import android.graphics.BitmapFactory
 import android.os.Environment
 import android.util.Log
+import androidx.core.graphics.blue
+import androidx.core.graphics.get
+import androidx.core.graphics.green
+import androidx.core.graphics.red
 import androidx.core.net.toUri
 import androidx.preference.PreferenceManager
 import com.google.android.apps.muzei.api.UserCommand
@@ -26,6 +31,7 @@ import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KE
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KEY_FETCH_ORIGIN
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KEY_FETCH_RANDOM
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KEY_FILTER_BOOKMARK
+import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KEY_FILTER_GREY_SCALE
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KEY_FILTER_SAFE
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KEY_FILTER_SIZE
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KEY_FILTER_VIEW
@@ -111,9 +117,34 @@ class MuzeiProvider : MuzeiArtProvider() {
                         }
                     }
                 }
-            tmpFile.renameTo(file);
+            tmpFile.renameTo(file)
+        }
+
+        if (preference.getBoolean(KEY_FILTER_GREY_SCALE, true)
+            && CheckIsGreyScale(file)) {
+            file.delete()
+            throw Exception("跳过灰色图片")
         }
         return file.inputStream()
+    }
+
+    private fun CheckIsGreyScale(file: File): Boolean {
+        val bitmap = BitmapFactory.decodeStream(file.inputStream())
+        val start = System.currentTimeMillis()
+        var greyPointCount = 0;
+        var totalPointCount = 0;
+        for (x in 0 until bitmap.width step 3) {
+            for (y in 0 until bitmap.height step 3) {
+                if (bitmap[x, y].red == bitmap[x, y].green && bitmap[x, y].green == bitmap[x, y].blue) {
+                    greyPointCount++
+                }
+                totalPointCount++
+            }
+        }
+        val end = System.currentTimeMillis()
+        val percent = greyPointCount.toFloat() / totalPointCount
+        Log.d(TAG, "灰阶图片检测：$percent = $greyPointCount / $totalPointCount, 耗时：${end - start}毫秒")
+        return percent > 0.9
     }
 
     private fun getPixivCacheDir(): File {

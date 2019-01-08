@@ -78,6 +78,12 @@
             android:summaryOff="@string/pref_filter_safe_summary_off"
             android:summaryOn="@string/pref_filter_safe_summary_on"
             android:title="@string/pref_filter_safe" />
+        <SwitchPreferenceCompat
+            android:defaultValue="true"
+            android:key="filter_grey_scale"
+            android:summaryOff="@string/pref_filter_grey_scale_summary_off"
+            android:summaryOn="@string/pref_filter_grey_scale_summary_on"
+            android:title="@string/pref_filter_grey_scale" />
         <one.oktw.muzeipixivsource.activity.preference.NumberPickerPreference
             android:defaultValue="1000"
             android:key="filter_size"

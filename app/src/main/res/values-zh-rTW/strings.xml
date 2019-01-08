@@ -70,4 +70,7 @@
     <string name="pref_fetch_mode_ranking_female_r18">受女性歡迎（R18）</string>
     <string name="pref_fetch_all_page_summary">如果作品包含多頁，獲取所有頁的圖片</string>
     <string name="pref_fetch_all_page">獲取所有頁</string>
+    <string name="pref_filter_grey_scale">過濾灰色圖片</string>
+    <string name="pref_filter_grey_scale_summary_on">不顯示灰色圖片</string>
+    <string name="pref_filter_grey_scale_summary_off">顯示灰色圖片</string>
 </resources>

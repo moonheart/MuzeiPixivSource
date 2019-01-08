@@ -86,6 +86,10 @@
     <string name="pref_fetch_all_page_summary">If illust have multiple pages, fetch all pages</string>
     <string name="pref_fetch_all_page">Fetch All Pages</string>
 
+    <string name="pref_filter_grey_scale_summary_on">Do not show grey scale images</string>
+    <string name="pref_filter_grey_scale_summary_off">Show grey scale images</string>
+    <string name="pref_filter_grey_scale">Grey Scale Filter</string>
+
     <!-- Login -->
     <string name="title_activity_pixiv_login">Login Pixiv</string>
     <string name="login_username_hint">Username / Email</string>

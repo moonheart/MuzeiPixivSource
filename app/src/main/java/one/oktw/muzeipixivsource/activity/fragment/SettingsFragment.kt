@@ -45,6 +45,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         const val KEY_FETCH_MODE_BOOKMARK = "fetch_mode_bookmark"
         const val KEY_FETCH_RANDOM = "fetch_random"
         const val KEY_FILTER_SAFE = "filter_safe"
+        const val KEY_FILTER_GREY_SCALE = "filter_grey_scale"
         const val KEY_FILTER_SIZE = "filter_size"
         const val KEY_FILTER_VIEW = "filter_view"
         const val KEY_FILTER_BOOKMARK = "filter_bookmark"
