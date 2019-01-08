@@ -97,6 +97,7 @@ class MuzeiProvider : MuzeiArtProvider() {
         Log.d(TAG, "打开文件：$filename")
         val file = File(getPixivCacheDir(), filename)
         if (!file.exists()) {
+            val tmpFile = File(getPixivCacheDir(), "$filename.tmp")
             Request.Builder()
                 .url(artwork.persistentUri.toString())
                 .header("Referer", "https://app-api.pixiv.net/")
@@ -105,12 +106,12 @@ class MuzeiProvider : MuzeiArtProvider() {
                 .execute()
                 .use {
                     it.body()!!.byteStream().use { bs ->
-                        FileOutputStream(file).use {
+                        FileOutputStream(tmpFile).use {
                             bs.copyTo(it)
                         }
                     }
                 }
-
+            tmpFile.renameTo(file);
         }
         return file.inputStream()
     }
@@ -214,7 +215,10 @@ class MuzeiProvider : MuzeiArtProvider() {
             }
         }
 
-        if (cleanHistory && artworkList.isNotEmpty()) delete(contentUri, null, null)
+        if (cleanHistory && artworkList.isNotEmpty()) {
+            val delete = delete(contentUri, null, null)
+            Log.d(TAG, "删除历史：$delete")
+        }
         if (random) artworkList.shuffle()
         Log.d(TAG, "正在添加数量：${artworkList.size}")
         artworkList.forEach { addArtwork(it) }
