@@ -53,6 +53,7 @@ import kotlin.properties.Delegates
 class MuzeiProvider() : MuzeiArtProvider() {
     companion object {
         private const val COMMAND_FETCH = 1
+        private const val COMMAND_HIDE = 2
         private const val TAG = "MuzeiProvider"
     }
 
@@ -110,6 +111,7 @@ class MuzeiProvider() : MuzeiArtProvider() {
 
         if (filterGrwyscale &&
             checkGreyValue(greyValue)) {
+            hideImage(artwork)
             throw Exception("跳过灰色图片")
         }
 
@@ -138,6 +140,7 @@ class MuzeiProvider() : MuzeiArtProvider() {
             && checkGreyValue(greyValue)
             && CheckIsGreyScale(artwork.token, file)) {
             file.delete()
+            hideImage(artwork)
             throw Exception("跳过灰色图片")
         }
         return file.inputStream()
@@ -188,11 +191,13 @@ class MuzeiProvider() : MuzeiArtProvider() {
 
 
     override fun getCommands(artwork: Artwork) = mutableListOf(
-        UserCommand(COMMAND_FETCH, context?.getString(R.string.button_update))
+        UserCommand(COMMAND_FETCH, context?.getString(R.string.button_update)),
+        UserCommand(COMMAND_HIDE, context?.getString(R.string.button_hide))
     )
 
     override fun onCommand(artwork: Artwork, id: Int) = when (id) {
         COMMAND_FETCH -> onLoadRequested(false)
+        COMMAND_HIDE -> hideImage(artwork)
         else -> Unit
     }
 
@@ -207,6 +212,14 @@ class MuzeiProvider() : MuzeiArtProvider() {
         }
     }
 
+    private fun hideImage(artwork: Artwork) {
+        val filename = artwork.persistentUri.toString().split("/").last()
+        val file = File(getPixivCacheDir(), filename)
+        if (file.exists()) file.delete()
+        delete(contentUri, "token=?", arrayOf(artwork.token))
+        PixivSourceDatabase.instance(context).hideDao().upsert(artwork.token!!)
+    }
+
     private fun publish(list: ArrayList<Illust>) {
         val cleanHistory = preference.getBoolean(KEY_FETCH_CLEANUP, true)
         val filterNSFW = preference.getBoolean(KEY_FILTER_SAFE, true)
@@ -219,10 +232,12 @@ class MuzeiProvider() : MuzeiArtProvider() {
 
         val artworkList = ArrayList<Artwork>()
 
+
         list.forEach {
             if (filterNSFW && it.sanityLevel >= 4) return@forEach
             if (filterSize > it.height && filterSize > it.width) return@forEach
             if (minView > it.totalView || minBookmark > it.totalBookmarks) return@forEach
+
 
             if (it.pageCount > 1 && allPage) {
                 it.metaPages.forEachIndexed { index, image ->
@@ -269,6 +284,10 @@ class MuzeiProvider() : MuzeiArtProvider() {
                     .let(artworkList::add)
             }
         }
+
+        val hidelists = PixivSourceDatabase.instance(context).hideDao().getList(artworkList.map { it.token!! }.toTypedArray()).map { it.IllustId }
+
+        artworkList.removeIf { hidelists.contains(it.token) }
 
         if (cleanHistory && artworkList.isNotEmpty()) {
             val delete = delete(contentUri, null, null)
