@@ -36,6 +36,9 @@ import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KE
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KEY_FILTER_SIZE
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KEY_FILTER_VIEW
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KEY_PIXIV_ACCESS_TOKEN
+import one.oktw.muzeipixivsource.db.PixivSourceDatabase
+import one.oktw.muzeipixivsource.db.dao.ImageGrayscaleDao
+import one.oktw.muzeipixivsource.db.dao.upsert
 import one.oktw.muzeipixivsource.pixiv.Pixiv
 import one.oktw.muzeipixivsource.pixiv.PixivOAuth
 import one.oktw.muzeipixivsource.pixiv.mode.RankingCategory.Monthly
@@ -45,8 +48,9 @@ import org.jsoup.Jsoup
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
+import kotlin.properties.Delegates
 
-class MuzeiProvider : MuzeiArtProvider() {
+class MuzeiProvider() : MuzeiArtProvider() {
     companion object {
         private const val COMMAND_FETCH = 1
         private const val TAG = "MuzeiProvider"
@@ -54,12 +58,13 @@ class MuzeiProvider : MuzeiArtProvider() {
 
     private val httpClient = OkHttpClient()
     private lateinit var preference: SharedPreferences
+    private val imageGreyscaleDao: ImageGrayscaleDao
+        get() = PixivSourceDatabase.instance(context).imageDao()
 
     override fun onCreate(): Boolean {
         PreferenceManager.setDefaultValues(context, R.xml.prefragment, true)
 
         preference = PreferenceManager.getDefaultSharedPreferences(context)
-
         return super.onCreate()
     }
 
@@ -99,6 +104,15 @@ class MuzeiProvider : MuzeiArtProvider() {
     }
 
     override fun openFile(artwork: Artwork): InputStream {
+        val filterGrwyscale = preference.getBoolean(KEY_FILTER_GREY_SCALE, true)
+
+        val greyValue = if (filterGrwyscale) imageGreyscaleDao.getGreyscaleValue(artwork.token!!) else 0f
+
+        if (filterGrwyscale &&
+            checkGreyValue(greyValue)) {
+            throw Exception("跳过灰色图片")
+        }
+
         val filename = artwork.persistentUri.toString().split("/").last()
         Log.d(TAG, "打开文件：$filename")
         val file = File(getPixivCacheDir(), filename)
@@ -120,15 +134,16 @@ class MuzeiProvider : MuzeiArtProvider() {
             tmpFile.renameTo(file)
         }
 
-        if (preference.getBoolean(KEY_FILTER_GREY_SCALE, true)
-            && CheckIsGreyScale(file)) {
+        if (filterGrwyscale
+            && checkGreyValue(greyValue)
+            && CheckIsGreyScale(artwork.token, file)) {
             file.delete()
             throw Exception("跳过灰色图片")
         }
         return file.inputStream()
     }
 
-    private fun CheckIsGreyScale(file: File): Boolean {
+    private fun CheckIsGreyScale(token: String?, file: File): Boolean {
         val bitmap = BitmapFactory.decodeStream(file.inputStream())
         val start = System.currentTimeMillis()
         var greyPointCount = 0;
@@ -143,9 +158,18 @@ class MuzeiProvider : MuzeiArtProvider() {
         }
         val end = System.currentTimeMillis()
         val percent = greyPointCount.toFloat() / totalPointCount
+        if (token != null) {
+            val upsert = imageGreyscaleDao.upsert(token, percent)
+            Log.d(TAG, "upsert: $upsert")
+        } else Log.d(TAG, "token null")
         Log.d(TAG, "灰阶图片检测：$percent = $greyPointCount / $totalPointCount, 耗时：${end - start}毫秒")
+        return checkGreyValue(percent)
+    }
+
+    private fun checkGreyValue(percent: Float): Boolean {
         return percent > 0.9
     }
+
 
     private fun getPixivCacheDir(): File {
         val savePath = "/pixiv/"
@@ -212,7 +236,7 @@ class MuzeiProvider : MuzeiArtProvider() {
                         .title(it.title)
                         .byline(it.user.name)
                         .attribution(Jsoup.parse(it.caption).text())
-                        .token("${it.id}_$index")
+                        .token("${it.id}_p$index")
                         .webUri("https://www.pixiv.net/member_illust.php?mode=medium&illust_id=${it.id}".toUri())
                         .persistentUri(imageUrl)
                         .build()
