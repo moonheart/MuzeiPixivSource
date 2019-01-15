@@ -54,6 +54,7 @@ class MuzeiProvider() : MuzeiArtProvider() {
     companion object {
         private const val COMMAND_FETCH = 1
         private const val COMMAND_HIDE = 2
+        private const val COMMAND_HIDE_ILLUST = 3
         private const val TAG = "MuzeiProvider"
     }
 
@@ -192,13 +193,34 @@ class MuzeiProvider() : MuzeiArtProvider() {
 
     override fun getCommands(artwork: Artwork) = mutableListOf(
         UserCommand(COMMAND_FETCH, context?.getString(R.string.button_update)),
-        UserCommand(COMMAND_HIDE, context?.getString(R.string.button_hide))
+        UserCommand(COMMAND_HIDE, context?.getString(R.string.button_hide)),
+        UserCommand(COMMAND_HIDE_ILLUST, context?.getString(R.string.button_hide_illust))
     )
 
     override fun onCommand(artwork: Artwork, id: Int) = when (id) {
         COMMAND_FETCH -> onLoadRequested(false)
         COMMAND_HIDE -> hideImage(artwork)
+        COMMAND_HIDE_ILLUST -> hideIllust(artwork)
         else -> Unit
+    }
+
+    private fun hideIllust(artwork: Artwork) {
+        val ilustid = "\\d+_".toRegex().find(artwork.token!!)!!.value
+        Log.d(TAG, "隱藏作品 $ilustid")
+        query(contentUri, arrayOf("persistent_uri"), "token like ?", arrayOf("$ilustid%"), null)
+            .use {
+                while (it.moveToNext()) {
+                    val token = it.getString(0)
+                    val filename = token.split("/").last()
+                    Log.d(TAG, "隱藏圖片： $filename")
+                    val file = File(getPixivCacheDir(), filename)
+                    if (file.exists()) file.delete()
+                    PixivSourceDatabase.instance(context).hideDao()
+                        .upsert(filename.split(".")[0])
+                        .let { Log.d(TAG, "添加：$it") }
+                }
+            }
+        delete(contentUri, "token like ?", arrayOf("$ilustid%")).let { Log.d(TAG, "刪除隱藏：$it") }
     }
 
     private suspend fun updateToken() {
