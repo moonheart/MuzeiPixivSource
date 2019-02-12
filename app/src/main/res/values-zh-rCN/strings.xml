@@ -77,4 +77,5 @@
     <string name="button_hide_illust">不再显示此作品</string>
     <string name="button_share_image">分享此图片</string>
     <string name="button_share_url">分享作品链接</string>
+    <string name="share_to">分享到...</string>
 </resources>

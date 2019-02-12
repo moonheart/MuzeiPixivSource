@@ -217,11 +217,12 @@ class MuzeiProvider() : MuzeiArtProvider() {
     private fun shareUrl(artwork: Artwork) {
         val sendIntent: Intent = Intent().apply {
             action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, artwork.webUri.toString())
+            putExtra(Intent.EXTRA_TEXT, "${artwork.title} | ${artwork.byline} | ${artwork.webUri.toString()}")
             type = "text/plain"
+            addFlags(FLAG_ACTIVITY_NEW_TASK)
         }
-        sendIntent.addFlags(FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(sendIntent)
+
+        context.startActivity(Intent.createChooser(sendIntent, context?.getString(R.string.share_to)))
     }
 
     private fun shareImage(artwork: Artwork) {
@@ -232,9 +233,9 @@ class MuzeiProvider() : MuzeiArtProvider() {
             action = Intent.ACTION_SEND
             putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(context!!, "${BuildConfig.APPLICATION_ID}.fileprovider", file))
             type = "image/png"
+            addFlags(FLAG_ACTIVITY_NEW_TASK)
         }
-        shareIntent.addFlags(FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(shareIntent)
+        context.startActivity(Intent.createChooser(shareIntent, context?.getString(R.string.share_to)))
     }
 
     private fun hideIllust(artwork: Artwork) {
