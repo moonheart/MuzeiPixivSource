@@ -232,7 +232,7 @@ class MuzeiProvider() : MuzeiArtProvider() {
         val shareIntent: Intent = Intent().apply {
             action = Intent.ACTION_SEND
             putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(context!!, "${BuildConfig.APPLICATION_ID}.fileprovider", file))
-            type = "image/png"
+            type = "image/*"
             addFlags(FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(Intent.createChooser(shareIntent, context?.getString(R.string.share_to)))
