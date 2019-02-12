@@ -1,9 +1,12 @@
 package one.oktw.muzeipixivsource.provider
 
+import android.content.Intent
+import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.content.SharedPreferences
 import android.graphics.BitmapFactory
 import android.os.Environment
 import android.util.Log
+import androidx.core.content.FileProvider
 import androidx.core.graphics.blue
 import androidx.core.graphics.get
 import androidx.core.graphics.green
@@ -16,6 +19,7 @@ import com.google.android.apps.muzei.api.provider.MuzeiArtProvider
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import one.oktw.muzeipixivsource.BuildConfig
 import one.oktw.muzeipixivsource.R
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.FETCH_MODE_BOOKMARK
@@ -55,6 +59,8 @@ class MuzeiProvider() : MuzeiArtProvider() {
         private const val COMMAND_FETCH = 1
         private const val COMMAND_HIDE = 2
         private const val COMMAND_HIDE_ILLUST = 3
+        private const val COMMAND_SHARE_IMAGE = 4
+        private const val COMMAND_SHARE_URL = 5
         private const val TAG = "MuzeiProvider"
     }
 
@@ -194,14 +200,41 @@ class MuzeiProvider() : MuzeiArtProvider() {
     override fun getCommands(artwork: Artwork) = mutableListOf(
         UserCommand(COMMAND_FETCH, context?.getString(R.string.button_update)),
         UserCommand(COMMAND_HIDE, context?.getString(R.string.button_hide)),
-        UserCommand(COMMAND_HIDE_ILLUST, context?.getString(R.string.button_hide_illust))
+        UserCommand(COMMAND_HIDE_ILLUST, context?.getString(R.string.button_hide_illust)),
+        UserCommand(COMMAND_SHARE_IMAGE, context?.getString(R.string.button_share_image)),
+        UserCommand(COMMAND_SHARE_URL, context?.getString(R.string.button_share_url))
     )
 
     override fun onCommand(artwork: Artwork, id: Int) = when (id) {
         COMMAND_FETCH -> onLoadRequested(false)
         COMMAND_HIDE -> hideImage(artwork)
         COMMAND_HIDE_ILLUST -> hideIllust(artwork)
+        COMMAND_SHARE_IMAGE -> shareImage(artwork)
+        COMMAND_SHARE_URL -> shareUrl(artwork)
         else -> Unit
+    }
+
+    private fun shareUrl(artwork: Artwork) {
+        val sendIntent: Intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, artwork.webUri.toString())
+            type = "text/plain"
+        }
+        sendIntent.addFlags(FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(sendIntent)
+    }
+
+    private fun shareImage(artwork: Artwork) {
+        val filename = artwork.persistentUri.toString().split("/").last()
+        val file = File(getPixivCacheDir(), filename)
+
+        val shareIntent: Intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(context!!, "${BuildConfig.APPLICATION_ID}.fileprovider", file))
+            type = "image/png"
+        }
+        shareIntent.addFlags(FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(shareIntent)
     }
 
     private fun hideIllust(artwork: Artwork) {
