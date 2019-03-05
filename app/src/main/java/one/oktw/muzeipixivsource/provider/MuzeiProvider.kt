@@ -48,6 +48,7 @@ import one.oktw.muzeipixivsource.pixiv.PixivOAuth
 import one.oktw.muzeipixivsource.pixiv.mode.RankingCategory.Monthly
 import one.oktw.muzeipixivsource.pixiv.mode.RankingCategory.valueOf
 import one.oktw.muzeipixivsource.pixiv.model.Illust
+import one.oktw.muzeipixivsource.util.FileUtil
 import org.jsoup.Jsoup
 import java.io.File
 import java.io.FileOutputStream
@@ -64,14 +65,13 @@ class MuzeiProvider() : MuzeiArtProvider() {
         private const val TAG = "MuzeiProvider"
     }
 
-    private val httpClient = OkHttpClient()
     private lateinit var preference: SharedPreferences
-    private val imageGreyscaleDao: ImageGrayscaleDao
-        get() = PixivSourceDatabase.instance(context).imageDao()
+
+    private lateinit var fileUtil: FileUtil
 
     override fun onCreate(): Boolean {
         PreferenceManager.setDefaultValues(context, R.xml.prefragment, true)
-
+        fileUtil = FileUtil(context)
         preference = PreferenceManager.getDefaultSharedPreferences(context)
         return super.onCreate()
     }
@@ -113,87 +113,7 @@ class MuzeiProvider() : MuzeiArtProvider() {
 
     override fun openFile(artwork: Artwork): InputStream {
         val filterGrwyscale = preference.getBoolean(KEY_FILTER_GREY_SCALE, true)
-
-        val greyValue = if (filterGrwyscale) imageGreyscaleDao.getGreyscaleValue(artwork.token!!) else 0f
-
-        if (filterGrwyscale &&
-            checkGreyValue(greyValue)) {
-            hideImage(artwork)
-            throw Exception("跳过灰色图片")
-        }
-
-        val filename = artwork.persistentUri.toString().split("/").last()
-        Log.d(TAG, "打开文件：$filename")
-        val file = File(getPixivCacheDir(), filename)
-        if (!file.exists()) {
-            val tmpFile = File(getPixivCacheDir(), "$filename.tmp")
-            Request.Builder()
-                .url(artwork.persistentUri.toString())
-                .header("Referer", "https://app-api.pixiv.net/")
-                .build()
-                .let(httpClient::newCall)
-                .execute()
-                .use {
-                    it.body()!!.byteStream().use { bs ->
-                        FileOutputStream(tmpFile).use {
-                            bs.copyTo(it)
-                        }
-                    }
-                }
-            tmpFile.renameTo(file)
-        }
-
-        if (filterGrwyscale
-            && checkGreyValue(greyValue)
-            && CheckIsGreyScale(artwork.token, file)) {
-            file.delete()
-            hideImage(artwork)
-            throw Exception("跳过灰色图片")
-        }
-        return file.inputStream()
-    }
-
-    private fun CheckIsGreyScale(token: String?, file: File): Boolean {
-        val bitmap = BitmapFactory.decodeStream(file.inputStream())
-        val start = System.currentTimeMillis()
-        var greyPointCount = 0;
-        var totalPointCount = 0;
-        for (x in 0 until bitmap.width step 3) {
-            for (y in 0 until bitmap.height step 3) {
-                if (bitmap[x, y].red == bitmap[x, y].green && bitmap[x, y].green == bitmap[x, y].blue) {
-                    greyPointCount++
-                }
-                totalPointCount++
-            }
-        }
-        val end = System.currentTimeMillis()
-        val percent = greyPointCount.toFloat() / totalPointCount
-        if (token != null) {
-            val upsert = imageGreyscaleDao.upsert(token, percent)
-            Log.d(TAG, "upsert: $upsert")
-        } else Log.d(TAG, "token null")
-        Log.d(TAG, "灰阶图片检测：$percent = $greyPointCount / $totalPointCount, 耗时：${end - start}毫秒")
-        return checkGreyValue(percent)
-    }
-
-    private fun checkGreyValue(percent: Float): Boolean {
-        return percent > 0.9
-    }
-
-
-    private fun getPixivCacheDir(): File {
-        val savePath = "/pixiv/"
-        // 创建外置缓存文件夹
-        val pPath = File(Environment.getExternalStorageDirectory().toString() + savePath)
-        if (pPath.exists()) {
-            if (pPath.isFile) {
-                pPath.delete()
-                pPath.mkdir()
-            }
-        } else {
-            pPath.mkdir()
-        }
-        return pPath
+        return fileUtil.openFile(this, artwork, filterGrwyscale)
     }
 
 
@@ -226,8 +146,8 @@ class MuzeiProvider() : MuzeiArtProvider() {
     }
 
     private fun shareImage(artwork: Artwork) {
-        val filename = artwork.persistentUri.toString().split("/").last()
-        val file = File(getPixivCacheDir(), filename)
+//        val filename = artwork.persistentUri.toString().split("/").last()
+        val file = fileUtil.getFileForIllust(artwork.persistentUri!!)
 
         val shareIntent: Intent = Intent().apply {
             action = Intent.ACTION_SEND
@@ -247,7 +167,7 @@ class MuzeiProvider() : MuzeiArtProvider() {
                     val token = it.getString(0)
                     val filename = token.split("/").last()
                     Log.d(TAG, "隱藏圖片： $filename")
-                    val file = File(getPixivCacheDir(), filename)
+                    val file = File(fileUtil.getPixivCacheDir(), filename)
                     if (file.exists()) file.delete()
                     PixivSourceDatabase.instance(context).hideDao()
                         .upsert(filename.split(".")[0])
@@ -270,7 +190,7 @@ class MuzeiProvider() : MuzeiArtProvider() {
 
     private fun hideImage(artwork: Artwork) {
         val filename = artwork.persistentUri.toString().split("/").last()
-        val file = File(getPixivCacheDir(), filename)
+        val file = File(fileUtil.getPixivCacheDir(), filename)
         if (file.exists()) file.delete()
         delete(contentUri, "token=?", arrayOf(artwork.token))
         PixivSourceDatabase.instance(context).hideDao().upsert(artwork.token!!)

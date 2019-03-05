@@ -17,9 +17,9 @@
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
         <activity
-            android:name=".activity.SettingsActivity"
-            android:exported="true"
-            android:label="@string/app_name">
+            android:name=".activity.MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -27,11 +27,21 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".activity.SettingsActivity"
+            android:exported="true"
+            android:label="@string/app_name">
+            <!--<intent-filter>-->
+                <!--<action android:name="android.intent.action.MAIN" />-->
+
+                <!--<category android:name="android.intent.category.LAUNCHER" />-->
+            <!--</intent-filter>-->
+        </activity>
+        <activity
             android:name=".activity.PixivSignIn"
             android:label="@string/title_activity_pixiv_login" />
 
         <provider
-            android:name="one.oktw.muzeipixivsource.provider.MuzeiProvider"
+            android:name=".provider.MuzeiProvider"
             android:authorities="${applicationId}"
             android:description="@string/app_name"
             android:exported="true"
@@ -40,11 +50,11 @@
             <intent-filter>
                 <action android:name="com.google.android.apps.muzei.api.MuzeiArtProvider" />
             </intent-filter>
+
             <meta-data
                 android:name="settingsActivity"
                 android:value="one.oktw.muzeipixivsource.activity.SettingsActivity" />
         </provider>
-
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -54,6 +64,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
-
     </application>
+
 </manifest>
