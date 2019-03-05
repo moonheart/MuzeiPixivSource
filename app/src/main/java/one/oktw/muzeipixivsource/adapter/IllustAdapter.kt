@@ -100,8 +100,6 @@ class IllustAdapter(
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
-
-
             }
         }
 

@@ -4,12 +4,14 @@ import android.content.ContentResolver
 import android.net.Uri
 import android.os.Bundle
 import android.view.MotionEvent
+import android.widget.GridView
 import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.facebook.drawee.backends.pipeline.Fresco
+import com.facebook.imagepipeline.core.ImagePipelineConfig
 import com.google.android.apps.muzei.api.provider.Artwork
 import com.google.android.apps.muzei.api.provider.ProviderContract
 import one.oktw.muzeipixivsource.R
@@ -17,6 +19,7 @@ import one.oktw.muzeipixivsource.R
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.*
 import one.oktw.muzeipixivsource.adapter.IllustAdapter
+import one.oktw.muzeipixivsource.adapter.IllustAdapter3
 import one.oktw.muzeipixivsource.util.DensityUtil
 import one.oktw.muzeipixivsource.util.GridItemDecoration
 import kotlin.coroutines.CoroutineContext
@@ -28,33 +31,29 @@ class MainActivity: AppCompatActivity(), CoroutineScope {
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Main + job
 
-    lateinit var mRecyclerView: RecyclerView
+//    lateinit var mRecyclerView: RecyclerView
 
+    lateinit var gridView: GridView
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Fresco.initialize(this)
+
+        val config = ImagePipelineConfig.newBuilder(applicationContext)
+            .setDownsampleEnabled(true)
+            .build()
+
+        Fresco.initialize(applicationContext, config)
         setContentView(R.layout.activity_main)
 
-        mRecyclerView = findViewById(R.id.recyclerView)
+        gridView = findViewById(R.id.grid_view)
+//        mRecyclerView = findViewById(R.id.recyclerView)
 
         initView()
         initData()
 
-        mRecyclerView.setHasFixedSize(true)
+//        mRecyclerView.setHasFixedSize(true)
 
         job = Job()
 
-        val layoutManager = StaggeredGridLayoutManager(3, StaggeredGridLayoutManager.VERTICAL)
-            .apply {
-//            gapStrategy = StaggeredGridLayoutManager.GAP_HANDLING_NONE
-        }
-//        val layoutManager = GridLayoutManager(applicationContext, 3)
-        mRecyclerView.layoutManager = layoutManager
-        mRecyclerView.itemAnimator = null
-//        mRecyclerView.addItemDecoration(GridItemDecoration(
-//            2, DensityUtil.dip2px(this, 4.0f), false))
-
-//        val projections = arrayOf(ProviderContract.Artwork.TITLE, ProviderContract.Artwork.PERSISTENT_URI)
         var cursor = contentResolver.query(Uri.parse("content://one.oktw.muzeipixivsource"), null, null, null, null)
         val list = ArrayList<Artwork>()
         while(cursor.moveToNext())
@@ -63,9 +62,14 @@ class MainActivity: AppCompatActivity(), CoroutineScope {
             list.add(Artwork.fromCursor(cursor))
         }
 
-        val illustAdapter = IllustAdapter(applicationContext, list)
-        mRecyclerView.adapter = illustAdapter
+        val illustAdapter = IllustAdapter3(applicationContext, list)
+        gridView.adapter = illustAdapter
+//        mRecyclerView.adapter = illustAdapter
 
+//        val layoutManager = StaggeredGridLayoutManager(3, StaggeredGridLayoutManager.VERTICAL)
+//            .apply {
+//            }
+//        mRecyclerView.layoutManager = layoutManager
 
     }
 
