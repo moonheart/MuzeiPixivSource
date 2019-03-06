@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.ImageView
+import com.bumptech.glide.Glide
 import com.facebook.drawee.backends.pipeline.Fresco
 import com.facebook.drawee.view.SimpleDraweeView
 import com.facebook.imagepipeline.common.ResizeOptions
@@ -33,15 +34,16 @@ class IllustAdapter3(val context: Context,
             vh = ViewHolder(view.findViewById(R.id.my_image_view))
             val uri = fileUtil.openFile(artworkList[position])
 
-            val request = ImageRequestBuilder.newBuilderWithSource(uri)
-                .setResizeOptions(ResizeOptions.forDimensions(100,100))
-                .build();
+//            val request = ImageRequestBuilder.newBuilderWithSource(uri)
+//                .setResizeOptions(ResizeOptions.forDimensions(100,100))
+//                .build();
 
-            vh.imageView.controller = Fresco.newDraweeControllerBuilder()
-                .setOldController(vh.imageView.controller)
-                .setImageRequest(request)
-                .build()
-            vh.imageView.setImageURI(uri)
+//            vh.imageView.controller = Fresco.newDraweeControllerBuilder()
+//                .setOldController(vh.imageView.controller)
+//                .setImageRequest(request)
+//                .build()
+//            vh.imageView.setImageURI(uri)
+            Glide.with(view).load(uri).into(vh.imageView)
             view.tag = vh
         } else {
             vh = view.tag as ViewHolder
@@ -70,6 +72,6 @@ class IllustAdapter3(val context: Context,
     }
 
     class ViewHolder(
-        val imageView: SimpleDraweeView
+        val imageView: ImageView
     )
 }

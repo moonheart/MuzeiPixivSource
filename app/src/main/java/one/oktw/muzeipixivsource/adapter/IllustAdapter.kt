@@ -20,6 +20,7 @@ import android.graphics.BitmapRegionDecoder
 import android.graphics.Rect
 import android.net.Uri
 import android.util.Log
+import com.bumptech.glide.Glide
 import com.facebook.drawee.view.SimpleDraweeView
 import java.io.File
 import java.io.FileInputStream
@@ -75,8 +76,9 @@ class IllustAdapter(
         return position.toLong()
     }
 
-    inner class OneViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val ivImage: SimpleDraweeView = view.findViewById<View>(R.id.my_image_view) as SimpleDraweeView
+    inner class OneViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
+//        private val ivImage: SimpleDraweeView = view.findViewById<View>(R.id.my_image_view) as SimpleDraweeView
+        private val ivImage: ImageView = view.findViewById<View>(R.id.my_image_view) as ImageView
 
         init {
             //            val width = (ivImage.context as Activity).windowManager.defaultDisplay.width
@@ -87,20 +89,23 @@ class IllustAdapter(
         }
 
         fun setData(img: ImageInfo) {
-            val width = (ivImage.context as Activity).windowManager.defaultDisplay.width
-            val newWidth = width / 3
-            ivImage.layoutParams.width = newWidth
-//                    ivImage.layoutParams.height = newWidth
-            ivImage.layoutParams.height = newWidth * img.height / img.width
             Handler(Looper.getMainLooper()).post {
-                try {
-
-                    ivImage.setImageURI(img.uri)
-//
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+            Glide.with(view).load(img.uri).into(ivImage)
             }
+//            val width = (ivImage.context as Activity).windowManager.defaultDisplay.width
+//            val newWidth = width / 3
+//            ivImage.layoutParams.width = newWidth
+//                    ivImage.layoutParams.height = newWidth
+//            ivImage.layoutParams.height = newWidth * img.height / img.width
+//            Handler(Looper.getMainLooper()).post {
+//                try {
+//
+//                    ivImage.setImageURI(img.uri)
+////
+//                } catch (e: Exception) {
+//                    e.printStackTrace()
+//                }
+//            }
         }
 
 

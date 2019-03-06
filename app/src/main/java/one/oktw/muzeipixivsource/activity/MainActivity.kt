@@ -31,26 +31,26 @@ class MainActivity: AppCompatActivity(), CoroutineScope {
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Main + job
 
-//    lateinit var mRecyclerView: RecyclerView
+    lateinit var mRecyclerView: RecyclerView
 
-    lateinit var gridView: GridView
+//    lateinit var gridView: GridView
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val config = ImagePipelineConfig.newBuilder(applicationContext)
-            .setDownsampleEnabled(true)
-            .build()
+//        val config = ImagePipelineConfig.newBuilder(applicationContext)
+//            .setDownsampleEnabled(true)
+//            .build()
 
-        Fresco.initialize(applicationContext, config)
+//        Fresco.initialize(applicationContext, config)
         setContentView(R.layout.activity_main)
 
-        gridView = findViewById(R.id.grid_view)
-//        mRecyclerView = findViewById(R.id.recyclerView)
+//        gridView = findViewById(R.id.grid_view)
+        mRecyclerView = findViewById(R.id.recyclerView)
 
         initView()
         initData()
 
-//        mRecyclerView.setHasFixedSize(true)
+        mRecyclerView.setHasFixedSize(true)
 
         job = Job()
 
@@ -62,14 +62,15 @@ class MainActivity: AppCompatActivity(), CoroutineScope {
             list.add(Artwork.fromCursor(cursor))
         }
 
-        val illustAdapter = IllustAdapter3(applicationContext, list)
-        gridView.adapter = illustAdapter
-//        mRecyclerView.adapter = illustAdapter
+    val illustAdapter = IllustAdapter(applicationContext, list)
+//        val illustAdapter = IllustAdapter3(applicationContext, list)
+//        gridView.adapter = illustAdapter
+        mRecyclerView.adapter = illustAdapter
 
-//        val layoutManager = StaggeredGridLayoutManager(3, StaggeredGridLayoutManager.VERTICAL)
-//            .apply {
-//            }
-//        mRecyclerView.layoutManager = layoutManager
+        val layoutManager = StaggeredGridLayoutManager(3, StaggeredGridLayoutManager.VERTICAL)
+            .apply {
+            }
+        mRecyclerView.layoutManager = layoutManager
 
     }
 
