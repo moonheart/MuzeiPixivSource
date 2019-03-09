@@ -1,75 +1,66 @@
 package one.oktw.muzeipixivsource.adapter
 
-import android.app.Activity
 import android.content.Context
-import android.graphics.Bitmap
-import android.os.Handler
-import android.os.Looper
 import androidx.recyclerview.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
-import com.google.android.apps.muzei.api.provider.Artwork
-import kotlinx.coroutines.GlobalScope
 import one.oktw.muzeipixivsource.R
 import one.oktw.muzeipixivsource.util.FileUtil
-import kotlinx.coroutines.launch
-import android.graphics.BitmapFactory
-import android.graphics.BitmapRegionDecoder
-import android.graphics.Rect
 import android.net.Uri
 import android.util.Log
+import android.view.MotionEvent
 import com.bumptech.glide.Glide
-import com.facebook.drawee.view.SimpleDraweeView
-import java.io.File
-import java.io.FileInputStream
-import java.lang.Exception
+import com.bumptech.glide.request.RequestOptions
+import com.lxj.xpopup.XPopup
+import com.lxj.xpopup.core.ImageViewerPopupView
+import com.lxj.xpopup.interfaces.OnSrcViewUpdateListener
+import com.lxj.xpopup.interfaces.XPopupImageLoader
+import kotlinx.android.synthetic.main.cell_layout.view.*
 
 
 class IllustAdapter(
-    context: Context,
-    private val galleryList: ArrayList<Artwork>
+    val context: Context,
+    private val imageInfos: java.util.ArrayList<Any>
 ) : RecyclerView.Adapter<IllustAdapter.OneViewHolder>() {
 
     init {
         setHasStableIds(true)
     }
 
-    private val fileUtil: FileUtil = FileUtil(context)
-    val uris: Array<Uri?> = arrayOfNulls<Uri?>(galleryList.size)
-    val map: HashMap<Uri, ImageInfo> = HashMap()
-
-
-    override fun onCreateViewHolder(viewGroup: ViewGroup, i: Int): OneViewHolder {
+    override fun onCreateViewHolder(viewGroup: ViewGroup, viewType: Int): OneViewHolder {
         val view = LayoutInflater.from(viewGroup.context).inflate(R.layout.cell_layout, viewGroup, false)
         return OneViewHolder(view)
     }
 
-    override fun onBindViewHolder(viewHolder: IllustAdapter.OneViewHolder, i: Int) {
-//        Log.d("IllustAdapter", "onBindViewHolder: $i")
-        GlobalScope.launch {
-            val uri = if (uris[i] == null) {
-                uris[i] = fileUtil.openFile(galleryList[i])
-                uris[i]
-            } else {
-                uris[i]
+    override fun onBindViewHolder(viewHolder: IllustAdapter.OneViewHolder, position: Int) {
+        val imageInfo = imageInfos[position] as IllustAdapter.ImageInfo
+        val newWidth = context.resources.displayMetrics.widthPixels / 2
+        val newHeight = newWidth * imageInfo.height / imageInfo.width
+        viewHolder.view.layoutParams.height = newHeight
+        viewHolder.view.layoutParams.width = newWidth
+        viewHolder.setData(imageInfo.uri)
+
+        val imageView = viewHolder.view.findViewById<ImageView>(R.id.my_image_view)
+
+        viewHolder.view.setOnClickListener {
+            View.OnClickListener {
+                Log.d("XXX", "clicked!!!!!!!!!!")
+                XPopup.get(context).asImageViewer(imageView, position, imageInfos, OnSrcViewUpdateListener { popupView, position ->
+                    popupView.updateSrcView(imageView)
+                }, ImageLoader()).show()
             }
-            val imgInfo = if (map.containsKey(uri)) {
-                map[uri]
-            } else {
-                val fis = FileInputStream(uri!!.path)
-                val bitmap = BitmapFactory.decodeStream(fis)
-                map[uri] = ImageInfo(bitmap.height, bitmap.width, uri)
-                map[uri]
-            }
-            viewHolder.setData(imgInfo!!)
         }
+        viewHolder.view.setOnTouchListener { v, event ->
+            false
+        }
+
     }
 
 
     override fun getItemCount(): Int {
-        return galleryList.size
+        return imageInfos.size
     }
 
     override fun getItemId(position: Int): Long {
@@ -77,38 +68,11 @@ class IllustAdapter(
     }
 
     inner class OneViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
-//        private val ivImage: SimpleDraweeView = view.findViewById<View>(R.id.my_image_view) as SimpleDraweeView
-        private val ivImage: ImageView = view.findViewById<View>(R.id.my_image_view) as ImageView
-
-        init {
-            //            val width = (ivImage.context as Activity).windowManager.defaultDisplay.width
-//            ivImage.layoutParams.width = width / 3
-//            ivImage.scaleType = ImageView.ScaleType.CENTER
-//            ivImage.layoutParams.height = 100
-
+        fun setData(uri: Uri) {
+            Glide.with(view).load(uri)
+//                .apply(RequestOptions().override(com.bumptech.glide.request.target.Target.SIZE_ORIGINAL))
+                .into(view.findViewById(R.id.my_image_view))
         }
-
-        fun setData(img: ImageInfo) {
-            Handler(Looper.getMainLooper()).post {
-            Glide.with(view).load(img.uri).into(ivImage)
-            }
-//            val width = (ivImage.context as Activity).windowManager.defaultDisplay.width
-//            val newWidth = width / 3
-//            ivImage.layoutParams.width = newWidth
-//                    ivImage.layoutParams.height = newWidth
-//            ivImage.layoutParams.height = newWidth * img.height / img.width
-//            Handler(Looper.getMainLooper()).post {
-//                try {
-//
-//                    ivImage.setImageURI(img.uri)
-////
-//                } catch (e: Exception) {
-//                    e.printStackTrace()
-//                }
-//            }
-        }
-
-
     }
 
     data class ImageInfo(
@@ -116,4 +80,11 @@ class IllustAdapter(
         val width: Int,
         val uri: Uri
     )
+}
+
+class ImageLoader : XPopupImageLoader {
+    override fun loadImage(position: Int, uri: Any, imageView: ImageView) {
+        Glide.with(imageView).load(uri).apply(RequestOptions().override(com.bumptech.glide.request.target.Target.SIZE_ORIGINAL)).into(imageView)
+    }
+
 }

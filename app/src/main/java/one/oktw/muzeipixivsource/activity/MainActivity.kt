@@ -1,8 +1,10 @@
 package one.oktw.muzeipixivsource.activity
 
 import android.content.ContentResolver
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.MotionEvent
 import android.widget.GridView
 import com.google.android.material.snackbar.Snackbar
@@ -20,65 +22,50 @@ import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.*
 import one.oktw.muzeipixivsource.adapter.IllustAdapter
 import one.oktw.muzeipixivsource.adapter.IllustAdapter3
-import one.oktw.muzeipixivsource.util.DensityUtil
+import one.oktw.muzeipixivsource.util.FileUtil
 import one.oktw.muzeipixivsource.util.GridItemDecoration
+import java.io.FileInputStream
 import kotlin.coroutines.CoroutineContext
 
-class MainActivity: AppCompatActivity(), CoroutineScope {
-
-    lateinit var job: Job
-
-    override val coroutineContext: CoroutineContext
-        get() = Dispatchers.Main + job
+class MainActivity : AppCompatActivity() {
 
     lateinit var mRecyclerView: RecyclerView
 
-//    lateinit var gridView: GridView
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-//        val config = ImagePipelineConfig.newBuilder(applicationContext)
-//            .setDownsampleEnabled(true)
-//            .build()
-
-//        Fresco.initialize(applicationContext, config)
         setContentView(R.layout.activity_main)
 
-//        gridView = findViewById(R.id.grid_view)
         mRecyclerView = findViewById(R.id.recyclerView)
-
-        initView()
-        initData()
-
         mRecyclerView.setHasFixedSize(true)
 
-        job = Job()
-
-        var cursor = contentResolver.query(Uri.parse("content://one.oktw.muzeipixivsource"), null, null, null, null)
-        val list = ArrayList<Artwork>()
-        while(cursor.moveToNext())
-        {
-            if(cursor!=null)
-            list.add(Artwork.fromCursor(cursor))
-        }
-
-    val illustAdapter = IllustAdapter(applicationContext, list)
-//        val illustAdapter = IllustAdapter3(applicationContext, list)
-//        gridView.adapter = illustAdapter
+        val list = java.util.ArrayList<Any>()
+        val illustAdapter = IllustAdapter(applicationContext, list)
         mRecyclerView.adapter = illustAdapter
-
-        val layoutManager = StaggeredGridLayoutManager(3, StaggeredGridLayoutManager.VERTICAL)
+        val layoutManager = StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL)
             .apply {
+                gapStrategy = StaggeredGridLayoutManager.GAP_HANDLING_NONE
             }
         mRecyclerView.layoutManager = layoutManager
 
-    }
+        GlobalScope.launch {
+            val fileUtil = FileUtil(applicationContext)
+            val cursor = contentResolver.query(Uri.parse("content://one.oktw.muzeipixivsource"), null, null, null, null)
+            while (cursor.moveToNext()) {
+                if (cursor != null) {
+                    val uri = fileUtil.openFile(Artwork.fromCursor(cursor))
+                    val fis = FileInputStream(uri.path)
+                    val bitmap = BitmapFactory.decodeStream(fis)
+                    val imageInfo = IllustAdapter.ImageInfo(bitmap.height, bitmap.width, uri)
+                    val position = list.size
+                    list.add(imageInfo)
+                    mRecyclerView.post {
+                        illustAdapter.notifyItemRemoved(position)
+                        illustAdapter.notifyItemInserted(position)
+                    }
 
-    fun initView(){
-
-    }
-
-    fun initData(){
+                }
+            }
+        }
 
     }
 
