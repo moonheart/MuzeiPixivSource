@@ -24,7 +24,7 @@ import one.oktw.muzeipixivsource.util.IllustUtil
 class IllustAdapter(
     val context: Context,
     val layoutManager: StaggeredGridLayoutManager,
-    private val imageInfos: java.util.ArrayList<Any>
+    val imageInfos: java.util.ArrayList<Any>
 ) : RecyclerView.Adapter<IllustAdapter.ViewHolder>() {
 
     val illustUtil = IllustUtil(context)

@@ -129,11 +129,11 @@ class FileUtil(
         return file.inputStream()
     }
 
-    fun openFile(artwork: Artwork): Uri {
+    fun openFile(artwork: Artwork, force:Boolean = false): Uri {
         val filename = artwork.persistentUri.toString().split("/").last()
         Log.d(TAG, "打开文件：$filename")
         val file = getFileForIllust(artwork.persistentUri!!)
-        if (!file.exists()) {
+        if (force || !file.exists()) {
             val tmpFile = File(getPixivCacheDir(), "$filename.tmp")
             Request.Builder()
                 .url(artwork.persistentUri.toString())
