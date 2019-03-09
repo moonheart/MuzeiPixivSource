@@ -10,9 +10,11 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.bumptech.glide.GenericTransitionOptions
 import com.bumptech.glide.Glide
+import com.google.android.apps.muzei.api.provider.Artwork
 import com.lxj.xpopup.XPopup
 import com.lxj.xpopup.interfaces.XPopupImageLoader
 import one.oktw.muzeipixivsource.R
+import one.oktw.muzeipixivsource.util.IllustUtil
 
 
 class IllustAdapter(
@@ -20,6 +22,8 @@ class IllustAdapter(
     val layoutManager: StaggeredGridLayoutManager,
     private val imageInfos: java.util.ArrayList<Any>
 ) : RecyclerView.Adapter<IllustAdapter.ViewHolder>() {
+
+    val illustUtil = IllustUtil(context)
 
     init {
         setHasStableIds(true)
@@ -73,7 +77,8 @@ class IllustAdapter(
     data class ImageInfo(
         val height: Int,
         val width: Int,
-        val uri: Uri
+        val uri: Uri,
+        val artwork: Artwork
     )
 }
 

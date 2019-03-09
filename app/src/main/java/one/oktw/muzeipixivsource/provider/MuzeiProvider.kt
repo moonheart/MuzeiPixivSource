@@ -3,22 +3,14 @@ package one.oktw.muzeipixivsource.provider
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.content.SharedPreferences
-import android.graphics.BitmapFactory
-import android.os.Environment
 import android.util.Log
 import androidx.core.content.FileProvider
-import androidx.core.graphics.blue
-import androidx.core.graphics.get
-import androidx.core.graphics.green
-import androidx.core.graphics.red
 import androidx.core.net.toUri
 import androidx.preference.PreferenceManager
 import com.google.android.apps.muzei.api.UserCommand
 import com.google.android.apps.muzei.api.provider.Artwork
 import com.google.android.apps.muzei.api.provider.MuzeiArtProvider
 import kotlinx.coroutines.runBlocking
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import one.oktw.muzeipixivsource.BuildConfig
 import one.oktw.muzeipixivsource.R
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment
@@ -41,7 +33,6 @@ import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KE
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KEY_FILTER_VIEW
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KEY_PIXIV_ACCESS_TOKEN
 import one.oktw.muzeipixivsource.db.PixivSourceDatabase
-import one.oktw.muzeipixivsource.db.dao.ImageGrayscaleDao
 import one.oktw.muzeipixivsource.db.dao.upsert
 import one.oktw.muzeipixivsource.pixiv.Pixiv
 import one.oktw.muzeipixivsource.pixiv.PixivOAuth
@@ -49,11 +40,10 @@ import one.oktw.muzeipixivsource.pixiv.mode.RankingCategory.Monthly
 import one.oktw.muzeipixivsource.pixiv.mode.RankingCategory.valueOf
 import one.oktw.muzeipixivsource.pixiv.model.Illust
 import one.oktw.muzeipixivsource.util.FileUtil
+import one.oktw.muzeipixivsource.util.IllustUtil
 import org.jsoup.Jsoup
 import java.io.File
-import java.io.FileOutputStream
 import java.io.InputStream
-import kotlin.properties.Delegates
 
 class MuzeiProvider() : MuzeiArtProvider() {
     companion object {
@@ -69,8 +59,11 @@ class MuzeiProvider() : MuzeiArtProvider() {
 
     private lateinit var fileUtil: FileUtil
 
+    private lateinit var illustUtil: IllustUtil
+
     override fun onCreate(): Boolean {
         PreferenceManager.setDefaultValues(context, R.xml.prefragment, true)
+        illustUtil = IllustUtil(context)
         fileUtil = FileUtil(context)
         preference = PreferenceManager.getDefaultSharedPreferences(context)
         return super.onCreate()
@@ -127,54 +120,11 @@ class MuzeiProvider() : MuzeiArtProvider() {
 
     override fun onCommand(artwork: Artwork, id: Int) = when (id) {
         COMMAND_FETCH -> onLoadRequested(false)
-        COMMAND_HIDE -> hideImage(artwork)
-        COMMAND_HIDE_ILLUST -> hideIllust(artwork)
-        COMMAND_SHARE_IMAGE -> shareImage(artwork)
-        COMMAND_SHARE_URL -> shareUrl(artwork)
+        COMMAND_HIDE -> illustUtil.hideImage(artwork)
+        COMMAND_HIDE_ILLUST -> illustUtil.hideIllust(artwork)
+        COMMAND_SHARE_IMAGE -> illustUtil.shareImage(artwork)
+        COMMAND_SHARE_URL -> illustUtil.shareUrl(artwork)
         else -> Unit
-    }
-
-    private fun shareUrl(artwork: Artwork) {
-        val sendIntent: Intent = Intent().apply {
-            action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, "${artwork.title} | ${artwork.byline} | ${artwork.webUri.toString()}")
-            type = "text/plain"
-            addFlags(FLAG_ACTIVITY_NEW_TASK)
-        }
-
-        context.startActivity(Intent.createChooser(sendIntent, context?.getString(R.string.share_to)))
-    }
-
-    private fun shareImage(artwork: Artwork) {
-//        val filename = artwork.persistentUri.toString().split("/").last()
-        val file = fileUtil.getFileForIllust(artwork.persistentUri!!)
-
-        val shareIntent: Intent = Intent().apply {
-            action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(context!!, "${BuildConfig.APPLICATION_ID}.fileprovider", file))
-            type = "image/*"
-            addFlags(FLAG_ACTIVITY_NEW_TASK)
-        }
-        context.startActivity(Intent.createChooser(shareIntent, context?.getString(R.string.share_to)))
-    }
-
-    private fun hideIllust(artwork: Artwork) {
-        val ilustid = "\\d+_".toRegex().find(artwork.token!!)!!.value
-        Log.d(TAG, "隱藏作品 $ilustid")
-        query(contentUri, arrayOf("persistent_uri"), "token like ?", arrayOf("$ilustid%"), null)
-            .use {
-                while (it.moveToNext()) {
-                    val token = it.getString(0)
-                    val filename = token.split("/").last()
-                    Log.d(TAG, "隱藏圖片： $filename")
-                    val file = File(fileUtil.getPixivCacheDir(), filename)
-                    if (file.exists()) file.delete()
-                    PixivSourceDatabase.instance(context).hideDao()
-                        .upsert(filename.split(".")[0])
-                        .let { Log.d(TAG, "添加：$it") }
-                }
-            }
-        delete(contentUri, "token like ?", arrayOf("$ilustid%")).let { Log.d(TAG, "刪除隱藏：$it") }
     }
 
     private suspend fun updateToken() {
@@ -188,14 +138,6 @@ class MuzeiProvider() : MuzeiArtProvider() {
         }
     }
 
-    private fun hideImage(artwork: Artwork) {
-        val filename = artwork.persistentUri.toString().split("/").last()
-        val file = File(fileUtil.getPixivCacheDir(), filename)
-        if (file.exists()) file.delete()
-        delete(contentUri, "token=?", arrayOf(artwork.token))
-        PixivSourceDatabase.instance(context).hideDao().upsert(artwork.token!!)
-    }
-
     private fun publish(list: ArrayList<Illust>) {
         val cleanHistory = preference.getBoolean(KEY_FETCH_CLEANUP, true)
         val filterNSFW = preference.getBoolean(KEY_FILTER_SAFE, true)
@@ -207,7 +149,6 @@ class MuzeiProvider() : MuzeiArtProvider() {
         val allPage = preference.getBoolean(KEY_FETCH_ALL_PAGE, false)
 
         val artworkList = ArrayList<Artwork>()
-
 
         list.forEach {
             if (filterNSFW && it.sanityLevel >= 4) return@forEach
