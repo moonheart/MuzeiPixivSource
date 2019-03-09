@@ -64,12 +64,12 @@ class IllustUtil(
                 SettingsFragment.FETCH_MODE_RECOMMEND -> publish(pixiv.getRecommend())
                 SettingsFragment.FETCH_MODE_RANKING -> pixiv.getRanking(
                     RankingCategory.valueOf(preference.getString(SettingsFragment.KEY_FETCH_MODE_RANKING, RankingCategory.Monthly.name)!!)
-                ).let{publish(it)}
+                ).let { publish(it) }
 
                 SettingsFragment.FETCH_MODE_BOOKMARK -> pixiv.getBookmark(
                     preference.getInt(SettingsFragment.KEY_PIXIV_USER_ID, -1),
                     preference.getBoolean(SettingsFragment.KEY_FETCH_MODE_BOOKMARK, false)
-                ).let{publish(it)}
+                ).let { publish(it) }
             }
         } catch (e1: Exception) {
             // TODO better except handle
@@ -192,33 +192,33 @@ class IllustUtil(
     /**
      * 将作品加入隐藏列表
      */
-    suspend fun hideIllust(artwork: Artwork)  {
-            val illustId = "\\d+_".toRegex().find(artwork.token!!)!!.value
-            Log.d(TAG, "隱藏作品 $illustId")
+    suspend fun hideIllust(artwork: Artwork): List<Artwork> {
+        val illustId = "\\d+_".toRegex().find(artwork.token!!)!!.value
+        Log.d(TAG, "隱藏作品 $illustId")
 
-            val selection = "token like ?";
-            val selectionArgs = arrayOf("$illustId%")
+        val selection = "token like ?";
+        val selectionArgs = arrayOf("$illustId%")
 
-            contentResolver.query(contentUri, arrayOf("persistent_uri"), selection, selectionArgs, null)
-                .use {
-                    while (it.moveToNext()) {
-                        val token = it.getString(0)
-                        val filename = token.split("/").last()
-                        Log.d(TAG, "隱藏圖片： $filename")
-                        val file = File(fileUtil.getPixivCacheDir(), filename)
-                        if (file.exists()) file.delete()
-                        PixivSourceDatabase.instance(context).hideDao()
-                            .upsert(filename.split(".")[0])
-                            .let { Log.d(TAG, "添加隱藏圖片：$it") }
-                    }
-                }
-            contentResolver.delete(contentUri, selection, selectionArgs).let { Log.d(TAG, "刪除隱藏：$it") }
+        val cursor = contentResolver.query(contentUri, null, selection, selectionArgs, null)
+        val list = cursor.use { generateSequence { if (it.moveToNext()) it else null }.map { Artwork.fromCursor(it) }.toList() }
+        list.forEach {
+            val filename = it.persistentUri.toString().split("/").last()
+            Log.d(TAG, "隱藏圖片： $filename")
+            val file = File(fileUtil.getPixivCacheDir(), filename)
+            if (file.exists()) file.delete()
+            PixivSourceDatabase.instance(context).hideDao()
+                .upsert(filename.split(".")[0])
+                .let { Log.d(TAG, "添加隱藏圖片：$it") }
+        }
+
+        contentResolver.delete(contentUri, selection, selectionArgs).let { Log.d(TAG, "刪除隱藏：$it") }
+        return list
     }
 
     /**
      * 将图片加入隐藏列表
      */
-    suspend fun hideImage(artwork: Artwork)  {
+    suspend fun hideImage(artwork: Artwork) {
         val filename = artwork.persistentUri.toString().split("/").last()
         val file = File(fileUtil.getPixivCacheDir(), filename)
         if (file.exists()) file.delete()

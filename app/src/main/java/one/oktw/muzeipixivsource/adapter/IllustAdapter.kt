@@ -67,11 +67,19 @@ class IllustAdapter(
                     0 -> runBlocking {
                         illustUtil.hideImage(imageInfo.artwork)
                         recyclerView.post {
+                            imageInfos.removeAt(adapterPosition)
                             this@IllustAdapter.notifyItemRemoved(adapterPosition)
                         }
                     }
                     1 -> runBlocking {
-                        illustUtil.hideIllust(imageInfo.artwork)
+                        val list = illustUtil.hideIllust(imageInfo.artwork)
+                        list.forEach { ar->
+                            val index = imageInfos.indexOfFirst { (it as ImageInfo).artwork.token == ar.token }
+                            imageInfos.removeAt(index)
+                            recyclerView.post {
+                                this@IllustAdapter.notifyItemRemoved(index)
+                            }
+                        }
                     }
                     2 -> illustUtil.shareImage(imageInfo.artwork)
                     3 -> illustUtil.shareUrl(imageInfo.artwork)
