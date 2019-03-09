@@ -17,7 +17,6 @@ import one.oktw.muzeipixivsource.R
 import one.oktw.muzeipixivsource.adapter.IllustAdapter
 import one.oktw.muzeipixivsource.adapter.ImageLoader
 import one.oktw.muzeipixivsource.util.FileUtil
-import one.oktw.muzeipixivsource.util.ItemClickSupport
 import java.io.FileInputStream
 
 class MainActivity : AppCompatActivity() {
