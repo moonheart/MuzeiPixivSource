@@ -9,12 +9,12 @@ import one.oktw.muzeipixivsource.db.model.HideImage
 @Dao
 interface HideImageDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(hideImage: HideImage): Long
+    suspend fun insert(hideImage: HideImage): Long
 
     @Query("select * from hide_image where illust_id in (:illustIds)")
-    fun getList(illustIds: Array<String>): Array<HideImage>
+    suspend fun getList(illustIds: Array<String>): Array<HideImage>
 }
 
-fun HideImageDao.upsert(illustId: String): Long {
+suspend fun HideImageDao.upsert(illustId: String): Long {
     return insert(HideImage(illustId))
 }

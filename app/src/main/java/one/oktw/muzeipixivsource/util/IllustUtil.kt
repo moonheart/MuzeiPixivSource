@@ -4,15 +4,12 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.net.Uri
 import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.preference.PreferenceManager
 import com.google.android.apps.muzei.api.provider.Artwork
 import com.google.android.apps.muzei.api.provider.ProviderContract
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import one.oktw.muzeipixivsource.BuildConfig
 import one.oktw.muzeipixivsource.R
@@ -63,23 +60,23 @@ class IllustUtil(
 
         try {
             when (if (token == null) SettingsFragment.FETCH_MODE_FALLBACK else preference.getString(SettingsFragment.KEY_FETCH_MODE, "0")!!.toInt()) {
-                SettingsFragment.FETCH_MODE_FALLBACK -> pixiv.getFallback().let(::publish)
-                SettingsFragment.FETCH_MODE_RECOMMEND -> pixiv.getRecommend().let(::publish)
+                SettingsFragment.FETCH_MODE_FALLBACK -> publish(pixiv.getFallback())
+                SettingsFragment.FETCH_MODE_RECOMMEND -> publish(pixiv.getRecommend())
                 SettingsFragment.FETCH_MODE_RANKING -> pixiv.getRanking(
                     RankingCategory.valueOf(preference.getString(SettingsFragment.KEY_FETCH_MODE_RANKING, RankingCategory.Monthly.name)!!)
-                ).let(::publish)
+                ).let{publish(it)}
 
                 SettingsFragment.FETCH_MODE_BOOKMARK -> pixiv.getBookmark(
                     preference.getInt(SettingsFragment.KEY_PIXIV_USER_ID, -1),
                     preference.getBoolean(SettingsFragment.KEY_FETCH_MODE_BOOKMARK, false)
-                ).let(::publish)
+                ).let{publish(it)}
             }
         } catch (e1: Exception) {
             // TODO better except handle
             Log.e("fetch", "fetch update error", e1)
 
             try {
-                if (fallback) pixiv.getFallback().let(::publish) else throw e1
+                if (fallback) publish(pixiv.getFallback()) else throw e1
             } catch (e2: Exception) {
                 Log.e("fetch", "fetch update fallback error", e2)
                 throw e2
@@ -104,7 +101,7 @@ class IllustUtil(
     /**
      * 发布图片
      */
-    private fun publish(list: ArrayList<Illust>) {
+    private suspend fun publish(list: ArrayList<Illust>) {
         val cleanHistory = preference.getBoolean(SettingsFragment.KEY_FETCH_CLEANUP, true)
         val filterNSFW = preference.getBoolean(SettingsFragment.KEY_FILTER_SAFE, true)
         val random = preference.getBoolean(SettingsFragment.KEY_FETCH_RANDOM, false)
@@ -183,11 +180,19 @@ class IllustUtil(
     }
 
     /**
+     * 重载图片
+     */
+    suspend fun reDownloadImage(artwork: Artwork) {
+        val filename = artwork.persistentUri.toString().split("/").last()
+        val file = File(fileUtil.getPixivCacheDir(), filename)
+        if (file.exists()) file.delete()
+        fileUtil.openFile(artwork, true)
+    }
+
+    /**
      * 将作品加入隐藏列表
      */
-    fun hideIllust(artwork: Artwork) {
-        GlobalScope.launch {
-
+    suspend fun hideIllust(artwork: Artwork)  {
             val illustId = "\\d+_".toRegex().find(artwork.token!!)!!.value
             Log.d(TAG, "隱藏作品 $illustId")
 
@@ -208,20 +213,17 @@ class IllustUtil(
                     }
                 }
             contentResolver.delete(contentUri, selection, selectionArgs).let { Log.d(TAG, "刪除隱藏：$it") }
-        }
     }
 
     /**
      * 将图片加入隐藏列表
      */
-    fun hideImage(artwork: Artwork) {
-        GlobalScope.launch {
-            val filename = artwork.persistentUri.toString().split("/").last()
-            val file = File(fileUtil.getPixivCacheDir(), filename)
-            if (file.exists()) file.delete()
-            contentResolver.delete(contentUri, "token=?", arrayOf(artwork.token))
-            PixivSourceDatabase.instance(context).hideDao().upsert(artwork.token!!)
-        }
+    suspend fun hideImage(artwork: Artwork)  {
+        val filename = artwork.persistentUri.toString().split("/").last()
+        val file = File(fileUtil.getPixivCacheDir(), filename)
+        if (file.exists()) file.delete()
+        contentResolver.delete(contentUri, "token=?", arrayOf(artwork.token))
+        PixivSourceDatabase.instance(context).hideDao().upsert(artwork.token!!)
     }
 
     /**

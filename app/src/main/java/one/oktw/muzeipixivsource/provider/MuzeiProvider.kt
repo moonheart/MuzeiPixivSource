@@ -8,6 +8,7 @@ import com.google.android.apps.muzei.api.provider.Artwork
 import com.google.android.apps.muzei.api.provider.MuzeiArtProvider
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import one.oktw.muzeipixivsource.R
 import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment.Companion.KEY_FILTER_GREY_SCALE
 import one.oktw.muzeipixivsource.util.FileUtil
@@ -47,7 +48,10 @@ class MuzeiProvider() : MuzeiArtProvider() {
 
     override fun openFile(artwork: Artwork): InputStream {
         val filterGrwyscale = preference.getBoolean(KEY_FILTER_GREY_SCALE, true)
-        return fileUtil.openFile(this, artwork, filterGrwyscale)
+        val inputStream = runBlocking {
+            fileUtil.openFile(this@MuzeiProvider, artwork, filterGrwyscale)
+        }
+        return inputStream
     }
 
 
@@ -59,13 +63,15 @@ class MuzeiProvider() : MuzeiArtProvider() {
         UserCommand(COMMAND_SHARE_URL, context?.getString(R.string.button_share_url))
     )
 
-    override fun onCommand(artwork: Artwork, id: Int) = when (id) {
-        COMMAND_FETCH -> onLoadRequested(false)
-        COMMAND_HIDE -> illustUtil.hideImage(artwork)
-        COMMAND_HIDE_ILLUST -> illustUtil.hideIllust(artwork)
-        COMMAND_SHARE_IMAGE -> illustUtil.shareImage(artwork)
-        COMMAND_SHARE_URL -> illustUtil.shareUrl(artwork)
-        else -> Unit
+    override fun onCommand(artwork: Artwork, id: Int) {
+        when (id) {
+            COMMAND_FETCH -> onLoadRequested(false)
+            COMMAND_HIDE -> runBlocking { illustUtil.hideImage(artwork) }
+            COMMAND_HIDE_ILLUST -> runBlocking { illustUtil.hideIllust(artwork) }
+            COMMAND_SHARE_IMAGE -> illustUtil.shareImage(artwork)
+            COMMAND_SHARE_URL -> illustUtil.shareUrl(artwork)
+            else -> Unit
+        }
     }
 
 }

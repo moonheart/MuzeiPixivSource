@@ -16,7 +16,6 @@ abstract class PixivSourceDatabase:RoomDatabase() {
 
     companion object {
 
-
         private var db:PixivSourceDatabase? = null
 
         fun instance(context: Context):PixivSourceDatabase {

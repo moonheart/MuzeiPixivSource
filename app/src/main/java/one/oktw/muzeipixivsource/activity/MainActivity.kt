@@ -2,21 +2,15 @@ package one.oktw.muzeipixivsource.activity
 
 import android.content.Intent
 import android.graphics.BitmapFactory
-import android.graphics.Color
-import android.net.Uri
 import android.os.Bundle
-import android.view.Menu
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
-import com.google.android.apps.muzei.api.provider.Artwork
 import com.wangjie.rapidfloatingactionbutton.RapidFloatingActionButton
 import com.wangjie.rapidfloatingactionbutton.RapidFloatingActionHelper
 import com.wangjie.rapidfloatingactionbutton.RapidFloatingActionLayout
 import com.wangjie.rapidfloatingactionbutton.contentimpl.labellist.RFACLabelItem
 import com.wangjie.rapidfloatingactionbutton.contentimpl.labellist.RapidFloatingActionContentLabelList
-import com.wangjie.rapidfloatingactionbutton.util.RFABShape
 import com.wangjie.rapidfloatingactionbutton.util.RFABTextUtil
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -25,7 +19,7 @@ import one.oktw.muzeipixivsource.adapter.IllustAdapter
 import one.oktw.muzeipixivsource.util.FileUtil
 import one.oktw.muzeipixivsource.util.IllustUtil
 import java.io.FileInputStream
-import java.util.ArrayList
+import java.util.*
 
 class MainActivity : AppCompatActivity(), RapidFloatingActionContentLabelList.OnRapidFloatingActionContentLabelListListener<Int> {
 
@@ -57,7 +51,7 @@ class MainActivity : AppCompatActivity(), RapidFloatingActionContentLabelList.On
         mRecyclerView.layoutManager = layoutManager
 
         val list = java.util.ArrayList<Any>()
-        illustAdapter = IllustAdapter(this, layoutManager, list)
+        illustAdapter = IllustAdapter(this,mRecyclerView, layoutManager, list)
         mRecyclerView.adapter = illustAdapter
 
         updateList()

@@ -10,12 +10,12 @@ import one.oktw.muzeipixivsource.db.model.ImageGrayscale
 interface ImageGrayscaleDao {
 
     @Query("select greyscale_value from image_grayscale where illust_id=:illustId")
-    fun getGreyscaleValue(illustId:String):Float?
+    suspend fun getGreyscaleValue(illustId:String):Float?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(g: ImageGrayscale):Long
+    suspend fun insert(g: ImageGrayscale):Long
 
 }
-fun ImageGrayscaleDao.upsert(token:String, percent:Float):Long{
+suspend fun ImageGrayscaleDao.upsert(token:String, percent:Float):Long{
     return insert(ImageGrayscale(token, percent))
 }

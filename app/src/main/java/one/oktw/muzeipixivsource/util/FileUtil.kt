@@ -11,18 +11,18 @@ import androidx.core.graphics.green
 import androidx.core.graphics.red
 import androidx.core.net.toUri
 import com.google.android.apps.muzei.api.provider.Artwork
-import okhttp3.Callback
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import one.oktw.muzeipixivsource.activity.fragment.SettingsFragment
+import okhttp3.*
 import one.oktw.muzeipixivsource.db.PixivSourceDatabase
 import one.oktw.muzeipixivsource.db.dao.ImageGrayscaleDao
 import one.oktw.muzeipixivsource.db.dao.upsert
 import one.oktw.muzeipixivsource.provider.MuzeiProvider
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.io.InputStream
-import okhttp3.RequestBody
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 
 class FileUtil(
@@ -34,16 +34,6 @@ class FileUtil(
 
     private val httpClient = OkHttpClient()
 
-//    fun post(url: String, json: String, callback: Callback): Call {
-//        val body = RequestBody.create(JSON, json)
-//        val request = Request.Builder()
-//            .url(url)
-//            .post(body)
-//            .build()
-//        val call = httpClient.newCall(request)
-//        call.enqueue(callback)
-//        return call
-//    }
 
     private val imageGreyscaleDao: ImageGrayscaleDao
         get() = PixivSourceDatabase.instance(context).imageDao()
@@ -53,12 +43,6 @@ class FileUtil(
         val file = File(getPixivCacheDir(), filename)
         return file
     }
-
-//    fun getUriForIllust(uri: Uri): Uri {
-//        val filename = uri.toString().split("/").last()
-//        val file = File(getPixivCacheDir(), filename)
-//        return file.toUri()
-//    }
 
     fun getPixivCacheDir(): File {
         val savePath = "/pixiv/"
@@ -75,7 +59,7 @@ class FileUtil(
         return pPath
     }
 
-    fun openFile(provider: MuzeiProvider, artwork: Artwork, filterGrwyscale: Boolean): InputStream {
+    suspend fun openFile(provider: MuzeiProvider, artwork: Artwork, filterGrwyscale: Boolean): InputStream {
 
         val greyValue = if (filterGrwyscale) imageGreyscaleDao.getGreyscaleValue(artwork.token!!) else null
         Log.d(TAG, "filterGrwyscale: $filterGrwyscale, greyValue: $greyValue")
@@ -119,46 +103,48 @@ class FileUtil(
             }
         }
 
-//        if (filterGrwyscale
-//            && checkGreyValue(greyValue)
-//            && CheckIsGreyScale(artwork.token, file)) {
-//            file.delete()
-//            hideImage(provider, artwork)
-//            throw Exception("跳过灰色图片")
-//        }
         return file.inputStream()
     }
 
-    fun openFile(artwork: Artwork, force:Boolean = false): Uri {
+    suspend fun openFile(artwork: Artwork, force: Boolean = false): Uri {
         val filename = artwork.persistentUri.toString().split("/").last()
         Log.d(TAG, "打开文件：$filename")
         val file = getFileForIllust(artwork.persistentUri!!)
         if (force || !file.exists()) {
             val tmpFile = File(getPixivCacheDir(), "$filename.tmp")
-            Request.Builder()
-                .url(artwork.persistentUri.toString())
-                .header("Referer", "https://app-api.pixiv.net/")
-                .build()
-                .let(httpClient::newCall)
-                .execute()
-                .use {
-                    it.body()!!.byteStream().use { bs ->
-                        FileOutputStream(tmpFile).use {
-                            bs.copyTo(it)
-                        }
-                    }
-                }
+            downloadFile(artwork.persistentUri.toString(), tmpFile)
             tmpFile.renameTo(file)
         }
 
         return file.toUri()
     }
 
+    private suspend fun downloadFile(url: String, tmpFile: File) = suspendCoroutine<Int> {
+        Request.Builder()
+            .url(url)
+            .header("Referer", "https://app-api.pixiv.net/")
+            .build()
+            .let(httpClient::newCall)
+            .enqueue(object : Callback {
+                override fun onResponse(call: Call, response: Response) {
+                    response.body()!!.byteStream().use { bs ->
+                        FileOutputStream(tmpFile).use { tf ->
+                            bs.copyTo(tf)
+                            it.resume(1)
+                        }
+                    }
+                }
+
+                override fun onFailure(call: Call, e: IOException) = it.resumeWithException(e)
+
+            })
+    }
+
     private fun checkGreyValue(percent: Float): Boolean {
         return percent > 0.9
     }
 
-    private fun hideImage(provider: MuzeiProvider, artwork: Artwork) {
+    private suspend fun hideImage(provider: MuzeiProvider, artwork: Artwork) {
         val filename = artwork.persistentUri.toString().split("/").last()
         val file = File(getPixivCacheDir(), filename)
         if (file.exists()) file.delete()
@@ -166,7 +152,7 @@ class FileUtil(
         PixivSourceDatabase.instance(provider.context).hideDao().upsert(artwork.token!!)
     }
 
-    private fun CheckIsGreyScale(token: String?, file: File): Boolean {
+    private suspend fun CheckIsGreyScale(token: String?, file: File): Boolean {
         val bitmap = BitmapFactory.decodeStream(file.inputStream())
         val start = System.currentTimeMillis()
         var greyPointCount = 0;
