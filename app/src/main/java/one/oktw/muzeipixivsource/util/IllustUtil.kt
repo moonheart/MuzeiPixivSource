@@ -165,7 +165,7 @@ class IllustUtil(
             }
         }
 
-        val hidelists = PixivSourceDatabase.instance(context).hideDao().getList(artworkList.map { it.token!! }.toTypedArray()).map { it.IllustId }
+        val hidelists = PixivSourceDatabase.instance(context).hideDao().getList().map { it.IllustId }
 
         artworkList.removeIf { hidelists.contains(it.token) }
 

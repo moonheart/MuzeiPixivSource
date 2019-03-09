@@ -13,6 +13,9 @@ interface HideImageDao {
 
     @Query("select * from hide_image where illust_id in (:illustIds)")
     suspend fun getList(illustIds: Array<String>): Array<HideImage>
+
+    @Query("select * from hide_image")
+    suspend fun getList():Array<HideImage>
 }
 
 suspend fun HideImageDao.upsert(illustId: String): Long {

@@ -73,12 +73,9 @@ class IllustAdapter(
                     }
                     1 -> runBlocking {
                         val list = illustUtil.hideIllust(imageInfo.artwork)
-                        list.forEach { ar->
-                            val index = imageInfos.indexOfFirst { (it as ImageInfo).artwork.token == ar.token }
-                            imageInfos.removeAt(index)
-                            recyclerView.post {
-                                this@IllustAdapter.notifyItemRemoved(index)
-                            }
+                        imageInfos.removeIf { list.any {artwork ->  (it as ImageInfo).artwork.token ==artwork.token}}
+                        recyclerView.post {
+                            this@IllustAdapter.notifyDataSetChanged()
                         }
                     }
                     2 -> illustUtil.shareImage(imageInfo.artwork)
